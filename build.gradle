@@ -1,0 +1,82 @@
+repositories {
+    jcenter()
+
+    maven {
+        url "https://dl.bintray.com/eski/maven/"
+    }
+}
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle:2.0.0-beta5'
+        classpath 'com.github.dcendents:android-maven-gradle-plugin:1.3'
+    }
+}
+
+project.ext.kotlinVersion = "1.0.1"
+project.ext.androidVersion = 23
+project.ext.androidMinVersion = 8
+project.ext.androidBuildTools = "23.0.2"
+project.ext.versionName = '0.0.0'
+
+allprojects {
+    buildscript.repositories.addAll(rootProject.buildscript.repositories.toList())
+    repositories.addAll(rootProject.repositories.toList())
+}
+
+project.ext.addPublishingTasks = { Project childProject, String artifactName = null, String versionName = rootProject.versionName ->
+    if (artifactName == null) artifactName = autoGenerateArtifactName(childProject)
+
+    childProject.tasks.create(name: "sourcesJar", type: Jar) {
+        doFirst { println "creating $artifactName-sources-${versionName}.jar" }
+        baseName = artifactName
+        classifier = "sources-$versionName"
+        from isAndroidProject(childProject) ? childProject.android.sourceSets.main.java.srcDirs : childProject.sourceSets.main.allSource
+    }
+
+    childProject.apply(plugin: isAndroidProject(childProject) ? 'com.github.dcendents.android-maven' : 'maven')
+    childProject.tasks.create(name: "createPom") << {
+        childProject.pom {
+            project {
+                groupId 'org.eski'
+                artifactId artifactName
+                version versionName
+
+                inceptionYear '2016'
+                licenses {
+                    license {
+                        name 'The Apache Software License, Version 2.0'
+                        url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                        distribution 'repo'
+                    }
+                }
+            }
+        }.writeTo("$artifactName-${versionName}.pom")
+    }
+
+    childProject.tasks.create(name: "publishingArtifacts", dependsOn: ['createPom', 'sourcesJar'])
+}
+
+def autoGenerateArtifactName(Project project) {
+    def artifactName = project.name
+    def parent = project.parent
+
+    while (parent != null) {
+        artifactName = "${parent.name}.$artifactName"
+        parent = parent.parent
+    }
+    return artifactName
+}
+
+def isAndroidProject(Project project) {
+    return project.plugins.findPlugin("kotlin-android") != null || project.plugins.findPlugin("com.android.application") != null || project.plugins.findPlugin("android-library") != null
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+    childProjects.values().each { delete it.buildDir }
+}

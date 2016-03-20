@@ -1,0 +1,13 @@
+apply plugin: 'kotlin'
+
+buildscript {
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$rootProject.kotlinVersion"
+    }
+}
+
+dependencies {
+    compile "org.jetbrains.kotlin:kotlin-stdlib:$rootProject.kotlinVersion"
+}
+
+rootProject.addPublishingTasks(project, project.name, '0.0.0')

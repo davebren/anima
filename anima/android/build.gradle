@@ -1,0 +1,42 @@
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+
+buildscript {
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$rootProject.kotlinVersion"
+    }
+}
+
+android {
+    compileSdkVersion rootProject.androidVersion
+    buildToolsVersion rootProject.androidBuildTools
+
+    defaultConfig {
+        minSdkVersion rootProject.androidMinVersion
+        targetSdkVersion rootProject.androidVersion
+    }
+
+    sourceSets {
+        main.java.srcDirs = ["src/main/kotlin"]
+    }
+}
+
+android.libraryVariants.all { variant ->
+    def name = variant.buildType.name
+    if (name.equals(com.android.builder.core.BuilderConstants.DEBUG)) {
+        return; // Skip debug builds.
+    }
+    def task = project.tasks.create "jar${name.capitalize()}", Jar
+    task.dependsOn variant.javaCompile
+    task.from variant.javaCompile.destinationDir
+    artifacts.add('archives', task);
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    testCompile 'junit:junit:4.12'
+    provided 'com.android.support:appcompat-v7:23.2.1'
+    compile 'org.eski:anima:0.0.0'
+}
+
+rootProject.addPublishingTasks(project, "${project.parent.name}.$project.name", '0.0.0')
